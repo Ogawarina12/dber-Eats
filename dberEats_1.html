@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dber Eats</title>
+    <style>
+        :root { --primary: #06C167; --bg: #f6f6f6; --dber-black: #000000; --dber-blue: #2D6595; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; background: var(--bg); margin: 0; padding: 0; }
+        
+        /* 共通設定 */
+        .hidden { display: none !important; }
+        .fade-out { opacity: 0; transition: opacity 0.5s ease; }
+        
+        /* 1. スプラッシュ画面（起動画面） */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--dber-black);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999;
+        }
+        #splash-logo {
+            width: 150px; /* 画像のサイズ調整 */
+            height: auto;
+            border-radius: 20px;
+        }
+
+        /* 2. ログイン画面 */
+        #login-screen {
+            height: 100vh;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px;
+            background: white;
+            box-sizing: border-box;
+        }
+        .login-logo-text { font-size: 2rem; font-weight: bold; margin-bottom: 40px; }
+        .login-logo-text span { color: var(--dber-blue); }
+        
+        .auth-input {
+            width: 100%; max-width: 300px; padding: 15px;
+            font-size: 1.1rem; border: 1px solid #ddd; border-radius: 8px;
+            margin-bottom: 15px; box-sizing: border-box; background: #f9f9f9;
+        }
+        .login-btn {
+            width: 100%; max-width: 300px; padding: 15px;
+            background: var(--dber-black); color: white;
+            border: none; border-radius: 8px; font-size: 1rem; font-weight: bold;
+            cursor: pointer; margin-bottom: 20px;
+        }
+        .bio-btn {
+            background: white; color: #333; border: 1px solid #ddd;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+
+        /* 3. メインアプリ画面（初期は非表示） */
+        #main-app { padding-bottom: 100px; }
+        header { background: white; padding: 15px; position: sticky; top: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+        .header-logo { font-weight: bold; font-size: 1.2rem; }
+        .user-status { font-size: 0.8rem; color: #666; background: #eee; padding: 2px 8px; border-radius: 10px; }
+
+        .section { background: white; margin: 15px; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
+        h2 { font-size: 1rem; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        
+        /* フォーム部品 */
+        select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; background: white; }
+        .radio-group label { display: block; padding: 10px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+        .radio-group label:last-child { border-bottom: none; }
+
+        /* メニューリスト */
+        .menu-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 15px 0; }
+        .item-info h3 { margin: 0 0 5px 0; font-size: 1rem; }
+        .add-btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+
+        /* フッターカート */
+        .cart-bar { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px; border-top: 1px solid #ddd; box-sizing: border-box; text-align: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        .order-btn { background: var(--primary); color: white; border: none; padding: 15px 0; width: 95%; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
+        .order-btn:disabled { background: #ccc; }
+    </style>
+</head>
+<body>
+
+<div id="splash-screen">
+    <img src="image_bc999d.png" id="splash-logo" alt="dber Eats Logo">
+</div>
+
+<div id="login-screen" class="hidden">
+    <div class="login-logo-text">dber <span>Eats</span></div>
+    
+    <input type="text" id="login-student-id" class="auth-input" placeholder="学籍番号 (例:26XX999)">
+    <button class="login-btn" onclick="handleLogin()">始める</button>
+    
+    <div style="margin: 10px; color: #999;">または</div>
+    
+    <button class="login-btn bio-btn" onclick="mockBiometricAuth()">
+        <span style="font-size: 1.2rem;">👆</span> 指紋/顔認証でログイン
+    </button>
+</div>
+
+<div id="main-app" class="hidden">
+    <header>
+        <div class="header-logo">dber <span style="color:var(--dber-blue)">Eats</span> 🍱</div>
+        <div id="header-user-id" class="user-status">未ログイン</div>
+    </header>
+
+    <div class="section">
+        <h2>📍 受け取り場所</h2>
+        <select id="location-select">
+            <option value="1号館6階ラウンジ">1号館6階ラウンジ</option>
+            <option value="3号館1階">3号館1階</option>
+            <option value="5301教室">5301教室</option>
+            <option value="2号館-総合メディアセンター前">2号館-総合メディアセンター前</option>
+            <option value="部室棟-1F">部室棟-1F</option>
+        </select>
+    </div>
+
+    <div class="section">
+        <h2>🍔 メニュー選択</h2>
+        <div id="menu-list"></div>
+    </div>
+
+    <div class="section">
+        <h2>💳 決済方法</h2>
+        <div class="radio-group">
+            <label><input type="radio" name="payment" value="現金" checked> 💵 現金（受取時払い）</label>
+            <label><input type="radio" name="payment" value="PayPay"> 🅿️ PayPay</label>
+            <label><input type="radio" name="payment" value="クレジットカード"> 💳 クレジットカード</label>
+        </div>
+    </div>
+
+    <div class="cart-bar">
+        <button id="order-btn" class="order-btn" onclick="submitOrder()" disabled>注文する (¥0)</button>
+    </div>
+</div>
+
+<script>
+    // --- 変数定義 ---
+    let currentStudentId = "";
+    let cart = [];
+    const menuData = [
+        { id: 1, name: "日替わりA弁当 (ハンバーグ)", price: 500 },
+        { id: 2, name: "カツカレー", price: 480 },
+        { id: 3, name: "唐揚げ棒", price: 150 },
+        { id: 4, name: "学食の味噌汁", price: 50 },
+        { id: 5, name: "お茶 (500ml)", price: 120 }
+    ];
+
+    // --- 1. アプリ起動処理 ---
+    window.onload = () => {
+        // 2秒後にスプラッシュを消してログイン画面を表示
+        setTimeout(() => {
+            const splash = document.getElementById('splash-screen');
+            splash.classList.add('fade-out');
+            
+            // アニメーション完了後に要素を完全に消す
+            setTimeout(() => {
+                splash.classList.add('hidden');
+                document.getElementById('login-screen').classList.remove('hidden');
+            }, 500);
+        }, 2000); // 2000ms = 2秒待機
+
+        // メニュー生成
+        renderMenu();
+    };
+
+    // --- 2. 認証関連処理 ---
+    function handleLogin() {
+        const inputId = document.getElementById('login-student-id').value;
+        if (inputId.length < 4) {
+            alert("正しい学籍番号を入力してください");
+            return;
+        }
+        completeLogin(inputId);
+    }
+
+    function mockBiometricAuth() {
+        const btn = document.querySelector('.bio-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "⏳ 認証中...";
+        
+        setTimeout(() => {
+            // 擬似的に認証成功
+            completeLogin("2026999 (生体認証済)");
+        }, 1000);
+    }
+
+    function completeLogin(id) {
+        currentStudentId = id;
+        document.getElementById('header-user-id').innerText = `ID: ${currentStudentId}`;
+        
+        // 画面遷移
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+    }
+
+    // --- 3. 注文関連処理 ---
+    function renderMenu() {
+        const list = document.getElementById('menu-list');
+        menuData.forEach(item => {
+            list.innerHTML += `
+                <div class="menu-item">
+                    <div class="item-info">
+                        <h3>${item.name}</h3>
+                        <div>¥${item.price}</div>
+                    </div>
+                    <button class="add-btn" onclick="addToCart('${item.name}', ${item.price})">追加</button>
+                </div>`;
+        });
+    }
+
+    function addToCart(name, price) {
+        cart.push({ name, price });
+        updateButton();
+    }
+
+    function updateButton() {
+        const total = cart.reduce((sum, item) => sum + item.price, 0);
+        const btn = document.getElementById('order-btn');
+        btn.innerText = `注文する (¥${total})`;
+        btn.disabled = cart.length === 0;
+    }
+
+    function submitOrder() {
+        const location = document.getElementById('location-select').value;
+        const payment = document.querySelector('input[name="payment"]:checked').value;
+
+        if (!location) return alert("📍 配達場所を選択してください！");
+
+        // 店舗管理側へ送るデータ
+        const orderData = {
+            id: Date.now(),
+            time: new Date().toLocaleTimeString(),
+            location: location,
+            studentId: currentStudentId, // ログイン画面で取得したIDを使用
+            items: cart.map(c => c.name).join(", "),
+            total: cart.reduce((sum, item) => sum + item.price, 0),
+            payment: payment,
+            status: "調理待ち"
+        };
+
+        // LocalStorageに保存（admin.htmlと連携）
+        const currentOrders = JSON.parse(localStorage.getItem('dber_orders') || '[]');
+        currentOrders.push(orderData);
+        localStorage.setItem('dber_orders', JSON.stringify(currentOrders));
+
+        alert("✅ 注文完了！\n学食で調理を開始しました。");
+        
+        // カートリセット
+        cart = [];
+        updateButton();
+        document.getElementById('location-select').value = "";
+    }
+</script>
+</body>
+</html>
