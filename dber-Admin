@@ -1,1 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dber Eats - 店舗管理画面</title>
+    <style>
+        body { font-family: sans-serif; background: #333; color: white; padding: 20px; }
+        h1 { border-bottom: 2px solid #555; padding-bottom: 10px; }
+        
+        .order-card {
+            background: white;
+            color: #333;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .order-info { font-size: 0.9rem; }
+        .order-info strong { font-size: 1.2rem; color: #06C167; }
+        .location { background: #eee; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .payment { color: #f0ad4e; font-weight: bold; }
+        
+        .action-btn {
+            background: #06C167; color: white; border: none; padding: 10px 20px;
+            border-radius: 5px; cursor: pointer; font-size: 1rem;
+        }
+        .action-btn:hover { opacity: 0.9; }
+        .delete-btn { background: #d9534f; margin-left: 10px; }
+        
+        .empty-msg { color: #ccc; text-align: center; margin-top: 50px; }
+    </style>
+</head>
+<body>
 
+<h1>dber Eats - 厨房・配達管理</h1>
+<div id="order-container">
+    <div class="empty-msg">現在、未処理の注文はありません...</div>
+</div>
+
+<script>
+    // 5秒ごとに注文を確認する（ポーリング）
+    setInterval(loadOrders, 2000);
+
+    function loadOrders() {
+        const container = document.getElementById('order-container');
+        const orders = JSON.parse(localStorage.getItem('dber_orders') || '[]');
+
+        if (orders.length === 0) {
+            container.innerHTML = '<div class="empty-msg">現在、未処理の注文はありません...</div>';
+            return;
+        }
+
+        // 画面を再描画（シンプルにするため毎回クリアして生成）
+        container.innerHTML = '';
+        
+        // 新しい順に表示
+        orders.reverse().forEach(order => {
+            const card = document.createElement('div');
+            card.className = 'order-card';
+            card.innerHTML = `
+                <div class="order-info">
+                    <strong>注文ID: ${order.id.toString().slice(-4)}</strong> <br>
+                    🕒 時間: ${order.time} <br>
+                    📍 場所: <span class="location">${order.location}</span> <br>
+                    👤 学籍: ${order.studentId} <br>
+                    🍱 内容: ${order.items} <br>
+                    💰 合計: ¥${order.total} (<span class="payment">${order.payment}</span>)
+                </div>
+                <div>
+                    <button class="action-btn" onclick="completeOrder(${order.id})">配達完了</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function completeOrder(id) {
+        if(!confirm('この注文を「完了」にして一覧から消しますか？')) return;
+
+        let orders = JSON.parse(localStorage.getItem('dber_orders') || '[]');
+        // 該当IDを削除
+        orders = orders.filter(o => o.id !== id);
+        // 保存し直す
+        localStorage.setItem('dber_orders', JSON.stringify(orders));
+        
+        loadOrders(); // 画面更新
+    }
+    
+    // 初回読み込み
+    loadOrders();
+</script>
+
+</body>
+</html>
